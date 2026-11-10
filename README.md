@@ -1,5 +1,7 @@
 # ALU Logo dApp
 
+[DemoVideo: Individual_Assignment2-DApp-Integration_smartContract](https://youtu.be/fiC_qeBMTC0)
+
 A web page that lets anyone check whether a logo file is the real ALU logo, and lets ALU register logos and distribute ALUT ownership shares. It is the frontend for the two contracts from Formative 1, which are reused here without changes.
 
 ## How it connects
