@@ -2,8 +2,8 @@ window.DAPP = {
   "chainId": 31337,
   "chainName": "Hardhat Local",
   "rpcUrl": "http://127.0.0.1:8545",
-  "registryAddress": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-  "tokenAddress": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+  "registryAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "tokenAddress": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
   "logoTokenId": "1",
   "registryAbi": [
     "constructor()",
@@ -72,7 +72,7 @@ window.DAPP = {
   "exampleHolders": [
     {
       "label": "ALU Administration (owner)",
-      "address": "0x3b68f78A23274A11E5741f7a7AEA3ACa671fefBB"
+      "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     {
       "label": "Faculty",
