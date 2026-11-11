@@ -221,8 +221,11 @@ $("registerForm").onsubmit = async (event) => {
     const transaction = await registry.connect(signer).registerAsset($("assetName").value, $("fileType").value, hash);
     message.textContent = "Waiting for confirmation...";
     const receipt = await transaction.wait();
-    // AssetRegistered is the last event the contract emits.
-    const tokenId =registry.interface.parseLog(receipt.logs.at(-1)).args.tokenId;
+    // Find the AssetRegistered event by name instead of relying on log order.
+    const registered = receipt.logs
+      .map((log) => registry.interface.parseLog(log))
+      .find((parsed) => parsed && parsed.name === "AssetRegistered");
+    const tokenId = registered.args.tokenId;
     message.textContent = "Success! Your logo is registered as token ID " + tokenId + ".";
   } catch (error) {
     message.textContent = friendlyError(error);
@@ -233,7 +236,13 @@ $("shareForm").onsubmit = async (event) => {
   event.preventDefault();
   const message = $("shareMessage");
   const recipient = $("recipient").value.trim();
-  const amount = BigInt($("amount").value);
+  // Only whole numbers are valid, so reject anything else before BigInt sees it.
+  const amountText = $("amount").value.trim();
+  if (!/^\d+$/.test(amountText)) {
+    message.textContent = "The amount must be a whole number greater than zero.";
+    return;
+  }
+  const amount = BigInt(amountText);
   try {
     if (!(await onCorrectNetwork())) {
       message.textContent = wrongNetworkText;
