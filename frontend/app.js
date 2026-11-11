@@ -1,10 +1,15 @@
+// Page behaviour: wallet connection, navigation, forms and messages.
+// Logic that the automated tests also run lives in logic.js.
+
 const config = window.DAPP;
 const $ = (id) => document.getElementById(id);
 
+// Reads go straight to the node, so the page works without a wallet.
 const reader = new ethers.JsonRpcProvider(config.rpcUrl, config.chainId, { staticNetwork: true });
 const registry = new ethers.Contract(config.registryAddress, config.registryAbi, reader);
 const token = new ethers.Contract(config.tokenAddress, config.tokenAbi, reader);
 
+// Both stay null until a wallet connects. The signer is what sends transactions.
 let account = null;
 let signer = null;
 
@@ -13,11 +18,27 @@ function showNotice(text) {
   $("notice").hidden = !text;
 }
 
+// Removes results left over from a previous wallet or network.
+function clearFormMessages() {
+  $("registerMessage").textContent = "";
+  $("shareMessage").textContent = "";
+}
+
+// Asks the wallet directly, because it may have changed network since connecting.
+async function onCorrectNetwork() {
+  const chainId = await window.ethereum.request({ method: "eth_chainId" });
+  return Number(chainId) === config.chainId;
+}
+
+const wrongNetworkText = "Wrong network. Please switch your wallet to " + config.chainName + ".";
+
+// Turns wallet and contract errors into a sentence a user can act on.
 function friendlyError(error) {
   if (error.code === "ACTION_REJECTED") return "You cancelled this in your wallet.";
   return error.reason || "Could not reach the blockchain. Please try again.";
 }
 
+// Shows the section a navigation button points to and hides the others.
 document.querySelectorAll("nav button").forEach((button) => {
   button.onclick = () => {
     document.querySelectorAll(".page").forEach((page) => {
@@ -26,6 +47,8 @@ document.querySelectorAll("nav button").forEach((button) => {
   };
 });
 
+// Switches the wallet to the dApp's network. Error 4902 means the wallet
+// does not know that network yet, so it is added instead.
 async function useCorrectNetwork() {
   const chainId = "0x" + config.chainId.toString(16);
   try {
@@ -61,19 +84,23 @@ async function connect() {
   }
 }
 
+// Runs on connect and whenever the wallet changes account or network.
 async function loadWallet() {
   const wallet = new ethers.BrowserProvider(window.ethereum);
   signer = await wallet.getSigner();
   account = await signer.getAddress();
   const network = await wallet.getNetwork();
-  showNotice(Number(network.chainId) === config.chainId ? "" : "Wrong network. Please switch your wallet to " + config.chainName + ".");
+  showNotice(Number(network.chainId) === config.chainId ? "" : wrongNetworkText);
+  clearFormMessages();
   await refresh();
 }
 
+// Makes the page forget the wallet. The site's permission stays in MetaMask.
 function disconnect() {
   account = null;
   signer = null;
   showNotice("");
+  clearFormMessages();
   refresh();
 }
 
@@ -85,6 +112,7 @@ async function refresh() {
   }
 }
 
+// Redraws the header and dashboard from the contract's current values.
 async function refreshDashboard() {
   $("connect").hidden = Boolean(account);
   $("disconnect").hidden = !account;
@@ -117,6 +145,7 @@ async function refreshDashboard() {
   $("ownerMessage").textContent = isOwner ? "" : "Only the contract owner can send shares. This wallet is not the owner.";
 }
 
+// Shows a green or red verdict in plain language.
 function showResult(result) {
   const box = $("verifyResult");
   box.hidden = false;
@@ -164,8 +193,18 @@ $("registerForm").onsubmit = async (event) => {
     message.textContent = "Please connect your wallet first.";
     return;
   }
+  // Browsers skip "required" on read-only fields, so check for a hash here.
+  const hash = $("contentHash").value;
+  if (!hash) {
+    message.textContent = "Please choose an image file first.";
+    return;
+  }
   try {
-    const hash = $("contentHash").value;
+    if (!(await onCorrectNetwork())) {
+      message.textContent = wrongNetworkText;
+      return;
+    }
+    // Checking first spares the user a failed transaction and its gas.
     if (await registry.registeredHashes(hash)) {
       message.textContent = "This file is already registered. Each file can only be registered once.";
       return;
@@ -174,7 +213,8 @@ $("registerForm").onsubmit = async (event) => {
     const transaction = await registry.connect(signer).registerAsset($("assetName").value, $("fileType").value, hash);
     message.textContent = "Waiting for confirmation...";
     const receipt = await transaction.wait();
-    const tokenId = registry.interface.parseLog(receipt.logs.at(-1)).args.tokenId;
+    // AssetRegistered is the last event the contract emits.
+    const tokenId =registry.interface.parseLog(receipt.logs.at(-1)).args.tokenId;
     message.textContent = "Success! Your logo is registered as token ID " + tokenId + ".";
   } catch (error) {
     message.textContent = friendlyError(error);
@@ -187,7 +227,9 @@ $("shareForm").onsubmit = async (event) => {
   const recipient = $("recipient").value.trim();
   const amount = BigInt($("amount").value);
   try {
-    if (!ethers.isAddress(recipient)) {
+    if (!(await onCorrectNetwork())) {
+      message.textContent = wrongNetworkText;
+    } else if (!ethers.isAddress(recipient)) {
       message.textContent = "That wallet address is not valid.";
     } else if (amount <= 0n) {
       message.textContent = "The amount must be greater than zero.";
@@ -207,6 +249,7 @@ $("shareForm").onsubmit = async (event) => {
 $("connect").onclick = connect;
 $("disconnect").onclick = disconnect;
 
+// Keeps the page in step with changes made inside the wallet.
 if (window.ethereum) {
   window.ethereum.on("accountsChanged", (accounts) => {
     if (!account) return;
