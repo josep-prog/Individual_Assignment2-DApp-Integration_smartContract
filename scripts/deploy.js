@@ -4,6 +4,12 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 
 async function main() {
+  // The page needs an RPC URL it can publish. SEPOLIA_RPC_URL usually holds a
+  // private API key, so it must not be written into the frontend.
+  if (network.name === "sepolia" && !process.env.FRONTEND_RPC_URL) {
+    throw new Error("Set FRONTEND_RPC_URL to a public RPC URL for the frontend.");
+  }
+
   // Read the actual logo from the project's main folder.
   const logoPath = path.join(__dirname, "..", "alu-logo.png");
 
@@ -97,8 +103,8 @@ async function main() {
 
   const frontendConfig = {
     chainId: Number((await ethers.provider.getNetwork()).chainId),
-    chainName: "Hardhat Local",
-    rpcUrl: "http://127.0.0.1:8545",
+    chainName: network.name === "sepolia" ? "Sepolia" : "Hardhat Local",
+    rpcUrl: process.env.FRONTEND_RPC_URL || "http://127.0.0.1:8545",
     registryAddress,
     tokenAddress: logoTokenAddress,
     logoTokenId: tokenId.toString(),
