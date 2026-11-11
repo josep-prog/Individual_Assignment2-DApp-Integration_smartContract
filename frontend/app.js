@@ -35,7 +35,16 @@ const wrongNetworkText = "Wrong network. Please switch your wallet to " + config
 // Turns wallet and contract errors into a sentence a user can act on.
 function friendlyError(error) {
   if (error.code === "ACTION_REJECTED") return "You cancelled this in your wallet.";
-  return error.reason || "Could not reach the blockchain. Please try again.";
+  if (error.code === "INSUFFICIENT_FUNDS") return "This wallet does not have enough ETH to pay the gas fee.";
+  // The contract's own revert message, when it gave one.
+  if (error.reason) return error.reason;
+  // An empty answer means no contract exists at the saved address.
+  if (error.code === "BAD_DATA") return "Could not find the ALU contracts on this network.";
+  // Browsers report a failed connection as a TypeError from fetch.
+  if (["NETWORK_ERROR", "SERVER_ERROR", "TIMEOUT"].includes(error.code) || error.name === "TypeError") {
+    return "Could not reach the blockchain. Please try again.";
+  }
+  return "Something went wrong. Please try again.";
 }
 
 // Shows the section a navigation button points to and hides the others.
@@ -79,6 +88,7 @@ async function connect() {
     await useCorrectNetwork();
     await window.ethereum.request({ method: "eth_requestAccounts" });
     await loadWallet();
+    localStorage.setItem("walletConnected", "true");
   } catch (error) {
     showNotice(friendlyError(error));
   }
@@ -99,6 +109,7 @@ async function loadWallet() {
 function disconnect() {
   account = null;
   signer = null;
+  localStorage.removeItem("walletConnected");
   showNotice("");
   clearFormMessages();
   refresh();
@@ -116,7 +127,7 @@ async function refresh() {
 async function refreshDashboard() {
   $("connect").hidden = Boolean(account);
   $("disconnect").hidden = !account;
-  $("totalSupply").textContent = await readSupply(token);
+  await displaySupply(token, $("totalSupply"));
 
   $("holders").replaceChildren();
   for (const holder of config.exampleHolders) {
@@ -145,17 +156,8 @@ async function refreshDashboard() {
   $("ownerMessage").textContent = isOwner ? "" : "Only the contract owner can send shares. This wallet is not the owner.";
 }
 
-// Shows a green or red verdict in plain language.
 function showResult(result) {
-  const box = $("verifyResult");
-  box.hidden = false;
-  box.className = result.authentic ? "good" : "bad";
-  box.textContent = (result.authentic ? "✔ " : "⚠ ") + result.text;
-  if (result.authentic) {
-    const details = document.createElement("p");
-    details.textContent = result.name + " | Registered on " + result.date + " by " + result.registeredBy;
-    box.append(details);
-  }
+  renderResult($("verifyResult"), result);
 }
 
 async function verify(hash) {
@@ -179,11 +181,17 @@ $("verifyHashButton").onclick = async () => {
 
 $("registerFile").onchange = async (event) => {
   const file = event.target.files[0];
-  if (!file) return;
+  $("registerMessage").textContent = "";
+  if (!file) {
+    // The file was deselected, so its hash and preview no longer apply.
+    $("contentHash").value = "";
+    $("preview").removeAttribute("src");
+    $("preview").hidden = true;
+    return;
+  }
   $("preview").src = URL.createObjectURL(file);
   $("preview").hidden = false;
   $("contentHash").value = await hashFile(file);
-  $("registerMessage").textContent = "";
 };
 
 $("registerForm").onsubmit = async (event) => {
@@ -261,5 +269,22 @@ if (window.ethereum) {
   });
 }
 
-refresh();
+// Reconnects after a page reload, unless the user chose Disconnect.
+// eth_accounts never opens a wallet prompt.
+async function restoreWallet() {
+  try {
+    if (window.ethereum && localStorage.getItem("walletConnected") === "true") {
+      const accounts = await window.ethereum.request({ method: "eth_accounts" });
+      if (accounts.length) {
+        await loadWallet();
+        return;
+      }
+    }
+  } catch (error) {
+    showNotice(friendlyError(error));
+  }
+  await refresh();
+}
+
+restoreWallet();
 

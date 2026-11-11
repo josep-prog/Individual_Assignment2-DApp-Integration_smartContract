@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ALU Logo dApp</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>ALU Logo dApp</h1>
+    <nav>
+      <button data-page="verify">Verify a Logo</button>
+      <button data-page="register">Register a Logo</button>
+      <button data-page="dashboard">Token Dashboard</button>
+    </nav>
+    <div>
+      <span id="walletInfo"></span>
+      <button id="connect">Connect Wallet</button>
+      <button id="disconnect" hidden>Disconnect</button>
+    </div>
+  </header>
+  <p id="notice" hidden></p>
+
+  <main>
+    <section id="verify" class="page">
+      <h2>Is this the real ALU logo?</h2>
+      <p>No wallet needed. Upload the file, or paste its fingerprint.</p>
+      <label>Logo file <input id="verifyFile" type="file" accept="image/*"></label>
+      <label>Fingerprint (SHA-256 hash) <input id="verifyHash"></label>
+      <button id="verifyHashButton">Check fingerprint</button>
+      <div id="verifyResult" hidden></div>
+    </section>
+
+    <section id="register" class="page" hidden>
+      <h2>Register a logo on the blockchain</h2>
+      <label>Image file <input id="registerFile" type="file" accept="image/*"></label>
+      <img id="preview" alt="Preview of the selected file" hidden>
+      <form id="registerForm">
+        <label>Content hash <input id="contentHash" readonly required></label>
+        <label>Asset name <input id="assetName" placeholder="ALU Official Logo 2026" required></label>
+        <label>File type <input id="fileType" placeholder="PNG" required></label>
+        <button>Register</button>
+      </form>
+      <p id="registerMessage"></p>
+    </section>
+
+    <section id="dashboard" class="page" hidden>
+      <h2>Who owns the ALU logo?</h2>
+      <p>Total supply: <strong id="totalSupply"></strong> ALUT</p>
+      <p>Your balance: <strong id="myBalance">Connect your wallet</strong></p>
+      <p>Your ownership: <strong id="myPercent">Connect your wallet</strong></p>
+      <table>
+        <thead><tr><th>Holder</th><th>Wallet</th><th>ALUT</th><th>Ownership</th></tr></thead>
+        <tbody id="holders"></tbody>
+      </table>
+
+      <h2>Distribute shares</h2>
+      <p id="ownerMessage"></p>
+      <form id="shareForm" hidden>
+        <label>Recipient wallet <input id="recipient" placeholder="0x..." required></label>
+        <label>Amount of ALUT <input id="amount" type="number" min="1" required></label>
+        <button>Send shares</button>
+      </form>
+      <p id="shareMessage"></p>
+    </section>
+  </main>
+
+  <script src="ethers.umd.min.js"></script>
+  <script src="contracts.js"></script>
+  <script src="logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+

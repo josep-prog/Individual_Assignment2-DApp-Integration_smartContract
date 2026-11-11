@@ -3,13 +3,23 @@ const { ethers } = require("hardhat");
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const { JSDOM } = require("jsdom");
 const {
   hashFile,
   checkLogo,
-  readSupply,
+  displaySupply,
+  renderResult,
   sendShares,
 } = require("../frontend/logic.js");
 
+// Loads the real page so the tests can check what it displays.
+function loadPage() {
+  const html = fs.readFileSync(
+    path.join(__dirname, "..", "frontend", "index.html"),
+    "utf8"
+  );
+  return new JSDOM(html).window.document;
+}
 
 describe("ALU Logo Project", function () {
   let registry;
@@ -179,7 +189,11 @@ describe("ALU Logo Project", function () {
 
   describe("Frontend integration", function () {
     it("9. Reads and displays the total supply as 1,000,000", async function () {
-      expect(await readSupply(logoToken)).to.equal("1,000,000");
+      const element = loadPage().getElementById("totalSupply");
+
+      await displaySupply(logoToken, element);
+
+      expect(element.textContent).to.equal("1,000,000");
     });
 
     it("10. Hashes a file to the correct bytes32 value", async function () {
@@ -197,11 +211,14 @@ describe("ALU Logo Project", function () {
         await registry.registerAsset("ALU Official Logo", "image/png", logoHash)
       ).wait();
 
-      const result = await checkLogo(registry, 1, logoHash);
+      const box = loadPage().getElementById("verifyResult");
 
-      expect(result.authentic).to.equal(true);
-      expect(result.text).to.equal("Logo Verified: This is the authentic ALU logo");
-      expect(result.name).to.equal("ALU Official Logo");
+      renderResult(box, await checkLogo(registry, 1, logoHash));
+
+      expect(box.hidden).to.equal(false);
+      expect(box.className).to.equal("good");
+      expect(box.textContent).to.include("Logo Verified: This is the authentic ALU logo");
+      expect(box.querySelector("p").textContent).to.include("ALU Official Logo");
     });
 
     it("12. Shows failure for an incorrect hash", async function () {
@@ -210,10 +227,14 @@ describe("ALU Logo Project", function () {
       ).wait();
 
       const wrongHash = ethers.toBeHex(BigInt(logoHash) ^ 1n, 32);
-      const result = await checkLogo(registry, 1, wrongHash);
+      const box = loadPage().getElementById("verifyResult");
 
-      expect(result.authentic).to.equal(false);
-      expect(result.text).to.equal("Warning: This logo has been modified.");
+      renderResult(box, await checkLogo(registry, 1, wrongHash));
+
+      expect(box.hidden).to.equal(false);
+      expect(box.className).to.equal("bad");
+      expect(box.textContent).to.include("Warning: This logo has been modified.");
+      expect(box.querySelector("p")).to.equal(null);
     });
 
     it("13. Updates the recipient balance after sending shares", async function () {

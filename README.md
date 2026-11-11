@@ -37,6 +37,14 @@ npx http-server frontend -p 3000 -c-1                    # terminal 2: serve the
 
 Then open http://localhost:3000.
 
+## Public version on Sepolia
+
+`docs/` holds the same page, connected to the contracts already deployed on Sepolia, so anyone can use it without running a blockchain. GitHub Pages serves it from the `/docs` folder of `main`:
+
+https://josep-prog.github.io/Individual_Assignment2-DApp-Integration_smartContract/
+
+Verifying a logo needs no wallet. Registering needs a wallet on Sepolia with test ETH, and only the deployer wallet can send shares. Run `npm run build:site` after changing anything in `frontend/`.
+
 ## Connect a wallet and use each feature
 
 1. In MetaMask, import Hardhat account #0, the contract owner. `npx hardhat node` prints its private key. These keys are public, so never send real money to them.
@@ -49,7 +57,7 @@ If you restart the local blockchain, clear the account's activity data in MetaMa
 
 ## Versions
 
-Node.js 22.23.3, Hardhat 2.29.1, ethers.js 6.17.0, Solidity 0.8.24, OpenZeppelin Contracts 5.0.2, http-server 14.1.1. No frontend framework.
+Node.js 22.23.3, Hardhat 2.29.1, ethers.js 6.17.0, Solidity 0.8.24, OpenZeppelin Contracts 5.0.2, http-server 14.1.1, jsdom 24.1.3. No frontend framework.
 
 ## Known issues and limitations
 
@@ -60,4 +68,4 @@ Node.js 22.23.3, Hardhat 2.29.1, ethers.js 6.17.0, Solidity 0.8.24, OpenZeppelin
 
 ## Credits
 
-Uses [ethers.js](https://docs.ethers.org/v6/), [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/), [Hardhat](https://hardhat.org/), [http-server](https://www.npmjs.com/package/http-server) and the browser's [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest).
+Uses [ethers.js](https://docs.ethers.org/v6/), [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/), [Hardhat](https://hardhat.org/), [http-server](https://www.npmjs.com/package/http-server), [jsdom](https://github.com/jsdom/jsdom) and the browser's [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest).

@@ -48,6 +48,23 @@ async function readSupply(token) {
   return formatNumber(await token.totalSupply());
 }
 
+// Writes the total supply into the page.
+async function displaySupply(token, element) {
+  element.textContent = await readSupply(token);
+}
+
+// Shows a green or red verdict in plain language.
+function renderResult(box, result) {
+  box.hidden = false;
+  box.className = result.authentic ? "good" : "bad";
+  box.textContent = (result.authentic ? "✔ " : "⚠ ") + result.text;
+  if (result.authentic) {
+    const details = box.ownerDocument.createElement("p");
+    details.textContent = result.name + " | Registered on " + result.date + " by " + result.registeredBy;
+    box.append(details);
+  }
+}
+
 // Sends shares and waits until the transaction is confirmed.
 async function sendShares(token, recipient, amount) {
   const transaction = await token.distributeShares(recipient, amount);
@@ -56,6 +73,6 @@ async function sendShares(token, recipient, amount) {
 
 // Browsers have no "module", so this export only runs under Node.
 if (typeof module !== "undefined") {
-  module.exports = { hashFile, normalizeHash, checkLogo, readSupply, sendShares };
+  module.exports = { hashFile, normalizeHash, checkLogo, readSupply, displaySupply, renderResult, sendShares };
 }
 
